@@ -102,6 +102,11 @@ class UserPreferences(context: Context) : SharedPreferenceStore(
 		 */
 		var preferExoPlayerFfmpeg = booleanPreference("exoplayer_prefer_ffmpeg", defaultValue = false)
 
+		/**
+		 * Send a path instead to the external player
+		 */
+		var externalVideoPlayerSendPath = booleanPreference("pref_send_path_external", false)
+
 		/* Playback - Audio related */
 		/**
 		 * Preferred behavior for audio streaming.

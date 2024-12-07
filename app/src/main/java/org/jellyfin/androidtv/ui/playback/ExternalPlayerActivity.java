@@ -31,6 +31,7 @@ import org.jellyfin.apiclient.interaction.Response;
 import org.jellyfin.apiclient.model.dlna.SubtitleDeliveryMethod;
 import org.jellyfin.sdk.api.client.ApiClient;
 import org.jellyfin.sdk.model.api.BaseItemKind;
+import org.jellyfin.sdk.model.api.MediaSourceInfo;
 import org.koin.java.KoinJavaComponent;
 
 import java.io.File;
@@ -55,6 +56,8 @@ public class ExternalPlayerActivity extends FragmentActivity {
     Long mPosition = 0l;
     boolean isLiveTv;
     boolean noPlayerError;
+    boolean mUseSendPath;
+
 
     private Lazy<ApiClient> apiClient = inject(ApiClient.class);
     private Lazy<UserPreferences> userPreferences = inject(UserPreferences.class);
@@ -93,11 +96,21 @@ public class ExternalPlayerActivity extends FragmentActivity {
     static final String API_VIMU_RESULT_POSITION = "position";
     static final int API_VIMU_RESULT_PLAYBACK_COMPLETED = 1;
 
+    // www.zidoo.tv
+    static final String API_ZIDOO_PACKAGE = "com.android.gallery3d";
+    static final String API_ZIDOO_ACTIVITY_NAME_MOVIE = "com.android.gallery3d.app.MovieActivity";
+    static final String API_ZIDOO_TITLE = "title";
+    static final String API_ZIDOO_SEEK_POSITION = "position";
+    static final String API_ZIDOO_FILENAME = "filename";
+    static final String API_ZIDOO_FROM_START = "from_start";
+    static final String API_ZIDOO_RETURN_RESULT = "return_result";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         mItemsToPlay = videoQueueManager.getValue().getCurrentVideoQueue();
+        mUseSendPath = userPreferences.getValue().get(UserPreferences.Companion.getExternalVideoPlayerSendPath());
 
         if (mItemsToPlay == null || mItemsToPlay.size() == 0) {
             Utils.showToast(this, getString(R.string.msg_no_playable_items));
@@ -290,6 +303,9 @@ public class ExternalPlayerActivity extends FragmentActivity {
                 //String url = KoinJavaComponent.<ApiClient>get(ApiClient.class).getApiUrl() + "/videos/" + response.getItemId() + "/stream?static=true&mediaSourceId=" + response.getMediaSourceId();
 
                 String url = response.getMediaUrl();
+                if (mUseSendPath)
+                    url = getSendPath(response.getMediaSource());
+
                 //And request an activity to play it
                 startExternalActivity(url, response.getMediaSource().getContainer() != null ? response.getMediaSource().getContainer() : "*");
             }
@@ -329,6 +345,10 @@ public class ExternalPlayerActivity extends FragmentActivity {
         }
 
         Intent external = new Intent(Intent.ACTION_VIEW);
+        external.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        external.addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+        external.setPackage(API_ZIDOO_PACKAGE);
+        external.setClassName(API_ZIDOO_PACKAGE, API_ZIDOO_ACTIVITY_NAME_MOVIE);
         external.setDataAndType(Uri.parse(path), "video/" + container);
 
         // build full title string
@@ -346,22 +366,19 @@ public class ExternalPlayerActivity extends FragmentActivity {
 
         //Start player API params
         int pos = mPosition.intValue();
-        external.putExtra(API_MX_SEEK_POSITION, pos);
-        external.putExtra(API_VIMU_SEEK_POSITION, pos);
+        external.putExtra(API_ZIDOO_SEEK_POSITION, pos);
         if (pos == 0) {
-            external.putExtra(API_VLC_FROM_START, true);
+            external.putExtra(API_ZIDOO_FROM_START, true);
         }
-        external.putExtra(API_VIMU_RESUME, false);
-        external.putExtra(API_MX_RETURN_RESULT, true);
+        external.putExtra(API_ZIDOO_RETURN_RESULT, true);
         if (!full_title.isEmpty()) {
-            external.putExtra(API_MX_TITLE, full_title);
-            external.putExtra(API_VIMU_TITLE, full_title);
+            external.putExtra(API_ZIDOO_TITLE, full_title);
         }
         String filepath = item.getPath();
         if (filepath != null && !filepath.isEmpty()) {
             File file = new File(filepath);
             if (!file.getName().isEmpty()) {
-                external.putExtra(API_MX_FILENAME, file.getName());
+                external.putExtra(API_ZIDOO_FILENAME, file.getName());
             }
         }
 
@@ -428,5 +445,13 @@ public class ExternalPlayerActivity extends FragmentActivity {
         if (selectedSubUrl != null) {
             playerIntent.putExtra(API_VLC_SUBS_ENABLE, selectedSubUrl);
         }
+    }
+
+    protected static String getSendPath(MediaSourceInfo mediaSource) {
+        // get the file path on the remote to the file
+        String basePath = mediaSource.getPath();
+
+        // TODO: replace dynamically with user option
+        return "smb://10.0.0.20/media" + basePath;
     }
 }

@@ -88,6 +88,17 @@ class PlaybackAdvancedPreferencesScreen : OptionsFragment() {
 				setTitle(R.string.pref_external_player)
 				bind(userPreferences, UserPreferences.useExternalPlayer)
 			}
+
+			checkbox {
+				setTitle(R.string.pref_use_direct_path_title)
+				setContent(R.string.pref_use_direct_path_summary)
+				bind {
+					get { userPreferences[UserPreferences.externalVideoPlayerSendPath] }
+					set { userPreferences[UserPreferences.externalVideoPlayerSendPath] = it }
+					default { userPreferences.getDefaultValue(UserPreferences.externalVideoPlayerSendPath) }
+				}
+				depends { userPreferences[UserPreferences.useExternalPlayer]  }
+			}
 		}
 
 		category {
