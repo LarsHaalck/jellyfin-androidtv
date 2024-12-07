@@ -13,7 +13,8 @@ import org.jellyfin.apiclient.model.dlna.TranscodingProfile
 class ExternalPlayerProfile : DeviceProfile() {
 	init {
 		name = "AndroidTV-External"
-		maxStaticBitrate = 100_000_000 // 100 mbps
+		maxStaticBitrate = 200_000_000 // 200 mbps
+		maxStreamingBitrate = 200_000_000 // 200 mbps
 
 		directPlayProfiles = arrayOf(
 			DirectPlayProfile().apply {
